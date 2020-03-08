@@ -1,10 +1,10 @@
 ##Parameter for collision_avoidance.cpp
 
 ##  期望位置_x;
-target_x : 3.0
+target_x : 7.0
 
 ## 期望位置_y
-target_y : 0.3
+target_y : -2.0
 
 ##追踪部分位置环P
 p_xy : 1.4
@@ -32,5 +32,5 @@ vel_sp_max : 0.3
 
 
 ## 激光雷达范围设定
-range_min : 45
-range_max : 315
+range_min : 0
+range_max : 359

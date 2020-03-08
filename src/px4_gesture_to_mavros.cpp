@@ -170,7 +170,7 @@ void move_forward()
 {
     float state_desired[4];
     state_desired[0] = 1.0;
-    Command_now.command = Move_Body;
+    Command_now.command = Move_Body;//dyxtest
     generate_com(0, state_desired);
     move_pub.publish(Command_now);
     cout << "Moving forward!!!!!!! "<<endl;
