@@ -34,3 +34,14 @@ vel_sp_max : 0.3
 ## 激光雷达范围设定
 range_min : 0
 range_max : 359
+
+##ABC点坐标
+A_x : 2.25
+A_y : 0
+
+B_x : 0.25
+B_y : -2
+
+C_x : 2.25
+C_y : -2
+

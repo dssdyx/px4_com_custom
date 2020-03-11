@@ -63,6 +63,12 @@ int flag_land;                                                  //降落标志�
 float door_center_x[2];
 float door_center_y[2];
 bool reach_door_flag[2];
+//--------------------------------------------dyx for 4x4demo-------------------------------------------------
+float A_x,A_y;
+float B_x,B_y;
+float C_x,C_y;
+bool reach_ABC_flag[3];
+bool return_origin_flag[3];
 //--------------------------------------------输出--------------------------------------------------
 std_msgs::Bool flag_collision_avoidance;                       //是否进入避障模式标志位
 float vel_sp_body[2];                                           //总速度
@@ -161,6 +167,14 @@ int main(int argc, char **argv)
     nh.param<int>("range_min", range_min, 0.0);
     nh.param<int>("range_max", range_max, 0.0);
 
+    nh.param<float>("A_x", A_x, 0.0);
+    nh.param<float>("A_y", A_y, 0.0);
+    nh.param<float>("B_x", B_x, 0.0);
+    nh.param<float>("B_y", B_y, 0.0);
+    nh.param<float>("C_x", C_x, 0.0);
+    nh.param<float>("C_y", C_y, 0.0);
+
+
 
     //打印现实检查参数
     printf_param();
@@ -170,10 +184,14 @@ int main(int argc, char **argv)
     cout << "Please check the parameter and setting，1 for go on， else for quit: "<<endl;
     cin >> check_flag;
 
+
     if(check_flag != 1)
     {
         return -1;
     }
+    int mode_num;
+    cout << "Which mdoe? 1 for door, 2 for 4x4demo, 3 for normal: "<<endl;
+    cin >> mode_num;
 
     //初值
     vel_track[0]= 0;
@@ -198,9 +216,88 @@ int main(int argc, char **argv)
         //1. 更新雷达点云数据，存储在Laser中,并计算四向最小距离
         ros::spinOnce();
         /**************************dyx****************************************/
-        if(!reach_door_flag[0]) finddoorcentor(0);
-        else if(reach_door_flag[0]&&!reach_door_flag[1]) finddoorcentor(1);
-        else if(reach_door_flag[0]&&reach_door_flag[1]) collision_avoidance(target_x,target_y);
+        if(mode_num==1)
+        {
+            if(!reach_door_flag[0]) finddoorcentor(0);
+            else if(reach_door_flag[0]&&!reach_door_flag[1]) finddoorcentor(1);
+            else if(reach_door_flag[0]&&reach_door_flag[1]) collision_avoidance(target_x,target_y);
+        }
+        if(mode_num==2)
+        {
+            if(!reach_ABC_flag[0])  //飞到A点，标记1，
+            {
+                collision_avoidance(A_x,A_y);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x - A_x) * (pos_drone.pose.position.x -A_x) + (pos_drone.pose.position.y - A_y) * (pos_drone.pose.position.y - A_y));
+                //cout<<"abs_distance: "<<abs_distance<<endl;
+                if(abs_distance < 0.3 )
+                {
+                    reach_ABC_flag[0]=true;
+                }
+            }
+            else if(!return_origin_flag[0]) //返航，标记，
+            {
+                collision_avoidance(0,0);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x ) * (pos_drone.pose.position.x) + (pos_drone.pose.position.y ) * (pos_drone.pose.position.y ));
+                if(abs_distance < 0.1 )
+                {
+                    return_origin_flag[0]=true;
+                }
+            }
+            else if(!reach_ABC_flag[1])
+            {
+                collision_avoidance(B_x,B_y);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x - B_x) * (pos_drone.pose.position.x -B_x) + (pos_drone.pose.position.y - B_y) * (pos_drone.pose.position.y - B_y));
+                //cout<<"abs_distance: "<<abs_distance<<endl;
+                if(abs_distance < 0.3 )
+                {
+                    reach_ABC_flag[1]=true;
+                }
+
+            }
+            else if(!return_origin_flag[1])  //返航，标记，
+            {
+                collision_avoidance(0,0);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x ) * (pos_drone.pose.position.x) + (pos_drone.pose.position.y ) * (pos_drone.pose.position.y ));
+                if(abs_distance < 0.1 )
+                {
+                    return_origin_flag[1]=true;
+                }
+
+            }
+            else if(!reach_ABC_flag[2])
+            {
+                collision_avoidance(C_x,C_y);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x - C_x) * (pos_drone.pose.position.x -C_x) + (pos_drone.pose.position.y - C_y) * (pos_drone.pose.position.y - C_y));
+                //cout<<"abs_distance: "<<abs_distance<<endl;
+                if(abs_distance < 0.3 )
+                {
+                    reach_ABC_flag[2]=true;
+                }
+
+            }
+            else if(!return_origin_flag[2])  //返航，标记，
+            {
+                collision_avoidance(0,0);
+                float abs_distance;
+                abs_distance = sqrt((pos_drone.pose.position.x ) * (pos_drone.pose.position.x) + (pos_drone.pose.position.y ) * (pos_drone.pose.position.y ));
+                if(abs_distance < 0.1 )
+                {
+                    flag_land=1;
+                }
+            }
+
+
+        }
+        if(mode_num==3)
+        {
+            collision_avoidance(target_x,target_y);
+        }
+
         /**************************dyx****************************************/
 
         //5. 发布Command指令给position_controller.cpp
@@ -212,14 +309,17 @@ int main(int argc, char **argv)
         Command_now.vel_sp[1] =  vel_sp_body[1];  //ENU frame
         Command_now.pos_sp[2] =  0;
         Command_now.yaw_sp = 0 ;
-
-        float abs_distance;
-        abs_distance = sqrt((pos_drone.pose.position.x - target_x) * (pos_drone.pose.position.x - target_x) + (pos_drone.pose.position.y - target_y) * (pos_drone.pose.position.y - target_y));
-        if(abs_distance < 0.3 || flag_land == 1)
+        if(mode_num!=2)
         {
-            Command_now.command = 3;     //Land
-            flag_land = 1;
+            float abs_distance;
+            abs_distance = sqrt((pos_drone.pose.position.x - target_x) * (pos_drone.pose.position.x - target_x) + (pos_drone.pose.position.y - target_y) * (pos_drone.pose.position.y - target_y));
+            if(abs_distance < 0.3 || flag_land == 1)
+            {
+                Command_now.command = 3;     //Land
+                flag_land = 1;
+            }
         }
+        else if(flag_land == 1) Command_now.command = 3;
 
         command_pub.publish(Command_now);
 
@@ -328,7 +428,9 @@ void printf_param()
     cout << "vel_sp_max : "<< vel_sp_max << endl;
     cout << "range_min : "<< range_min << endl;
     cout << "range_max : "<< range_max << endl;
-
+    cout << "A : "<< A_x<<" "<<A_y<< endl;
+    cout << "B : "<< B_x<<" "<<B_y<< endl;
+    cout << "C : "<< C_x<<" "<<C_y<< endl;
 
 }
 void collision_avoidance(float target_x,float target_y)
